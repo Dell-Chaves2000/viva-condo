@@ -1,6 +1,22 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { getCondominios, ICondominio } from "@/services/api-condominios"
+
 export default function ListaCondominios(){
+
+    const [condominios, setCondominios] = useState<ICondominio[]>([])
+
+    useEffect(() => {
+        const buscaCondominios = async () => {
+            const data = await getCondominios()
+            console.log(data)
+            setCondominios(data)
+        }
+
+        buscaCondominios()
+    }, [])
+
     return(
         <div className="p-6 max-w-full">
             <div className="mb-4 flex itemss-center justify-between gap-4">
@@ -22,9 +38,23 @@ export default function ListaCondominios(){
                     
                     </thead> 
                     <tbody className="divide-y divide-gray-200 bg-white">
+                        {condominios.length === 0 ?(
                         <tr>
                             <td className="px-4 py-3 text-sm text-gray-700" colSpan={7}>Nenhum condominio encontrado</td>
                         </tr>
+                    ) : (
+                        condominios.map((condominio, index) => (
+                            <tr key={condominio.id_condominio} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{String(index +1)}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{condominio.nome_condominio}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{condominio.endereco_condominio}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{condominio.cidade_condominio}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{condominio.uf_condominio}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{condominio.tipo_condominio}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500"></td>
+                            </tr>
+                        ))
+                    )}     
                     </tbody>
                 </table>
             </div>
