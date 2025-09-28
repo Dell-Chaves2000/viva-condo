@@ -1,48 +1,86 @@
-/*const Home = () => {
-  return(
-  <div className="flex fçex-col items-center justify-center h-screen">
-    <h1 className="text-4x1 font-bold"> Olá mundo!!</h1>
-    </div>
-  );
-};
-
-export default Home*/
-
 "use client";
 
-type Morador = {
-  primeiroNome: string;
-  sobrenome: string;
-};
+import { useEffect, useState } from "react";
+import { supabase } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
-export default function Home() {
-  function formatarNomeMorador(morador: Morador) {
-    return morador.primeiroNome + " " + morador.sobrenome;
-  }
+export default function Login() {
+  const router = useRouter();
 
-  const morador = {
-    primeiroNome: "Sandro",
-    sobrenome: "Pereira",
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        router.replace("/condominios");
+      } else {
+        setCheckingSession(false);
+      }
+    };
+
+    checkSession();
+  }, [router]);
+
+  const login = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error || !data.user) {
+      console.error(error?.message);
+      return;
+    }
+
+    router.replace("/condominios");
   };
 
-  function obterSaudacao(morador: null | Morador) {
-    if (morador) {
-      return (
-        <div className="border border-blue bg-blue-500 text-white px-4 py-2 rounded-lg">
-          Olá, {formatarNomeMorador(morador)}!
-        </div>
-      );
-    }
-    return (
-      <div className="border border-blue bg-blue-500 text-white px-4 py-2 rounded-lg">
-        Olá, Estranho!!!
-      </div>
-    );
+  if (checkingSession) {
+    return null;
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-4xl font-bold">{obterSaudacao(morador)}</h1>
+    <div className="flex h-screen flex-col md:flex-row">
+      <div className="w-full flex items-center justify-center p-6">
+        <div className="w-full max-w-md bg-white p-8 shadow-lg rounded-lg">
+          <h2 className="text-2xl font-bold mb-4">Olá 👋</h2>
+          <p className="text-gray-500 mb-6">
+            Insira as informações que você usou ao se registrar.
+          </p>
+          <form onSubmit={login}>
+            <input
+              type="email"
+              placeholder="E-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 mb-4 border rounded-md focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="password"
+              placeholder="Senha"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 mb-4 border rounded-md focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-500 to-green-500 text-white p-3 rounded-md hover:opacity-90 transition-all disabled:opacity-50"
+            >
+              Entrar
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
