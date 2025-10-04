@@ -10,6 +10,8 @@ export default function Login() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false); // controla o estado de carregamento
+  const [errorMessage, setErrorMessage] = useState(""); // mensagem de erro
 
   useEffect(() => {
     const checkSession = async () => {
@@ -29,18 +31,31 @@ export default function Login() {
 
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setErrorMessage("");
+   
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      if (error || !data.user) {
+        if (error?.message === "Invalid login credentials") {
+          setErrorMessage("E-mail ou senha inválidos");
+        } else {
+          setErrorMessage("Erro inesperado. Tente novamente.");
+        }
+        setLoading(false);
+        return;
+      }
 
-    if (error || !data.user) {
-      console.error(error?.message);
-      return;
+      router.replace("/condominios");
+    } catch (err) {
+      console.error(err);
+      setErrorMessage("Erro inesperado. Tente novamente.");
+      setLoading(false);
     }
-
-    router.replace("/condominios");
   };
 
   if (checkingSession) {
@@ -72,11 +87,15 @@ export default function Login() {
               className="w-full p-3 mb-4 border rounded-md focus:ring-2 focus:ring-blue-500"
               required
             />
+            {errorMessage && (
+              <p className="text-red-600 font-bold mb-4">{errorMessage}</p>
+            )}
             <button
               type="submit"
+              disabled={loading}
               className="w-full bg-gradient-to-r from-blue-500 to-green-500 text-white p-3 rounded-md hover:opacity-90 transition-all disabled:opacity-50"
             >
-              Entrar
+              {loading ? <span className="font-bold">Entrando...</span> : "Entrar"}
             </button>
           </form>
         </div>

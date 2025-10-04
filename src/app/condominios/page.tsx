@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ICondominio } from "@/services/condominio.service";
+import Link from "next/link";
 
 export default function ListaCondominios() {
   const [condominios, setCondominios] = useState<ICondominio[]>([]);
