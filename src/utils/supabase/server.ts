@@ -12,13 +12,13 @@ export async function createServerSupabase() {
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
-        set(){
-
-        }
+        set(name: string, value: string, options: any) {
+          // obrigatório no tipo, mas não usado no server
+        },
+        remove(name: string, options: any) {
+          // idem
+        },
       },
-      remove(){
-        
-      }
     }
   );
 }

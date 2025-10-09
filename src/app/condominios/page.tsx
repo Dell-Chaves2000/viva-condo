@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { ICondominio } from "@/services/condominio.service";
-import Link from "next/link";
+import { supabase } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function ListaCondominios() {
   const [condominios, setCondominios] = useState<ICondominio[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const buscaCondominios = async () => {
@@ -33,10 +35,24 @@ export default function ListaCondominios() {
     buscaCondominios();
   }, []);
 
+  // Função de logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.replace("/"); // volta para tela de login
+  };
+
   return (
     <div className="p-6 max-w-full">
       <div className="mb-4 flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Condomínios</h1>
+
+        {/* Botão de logout */}
+        <button
+          onClick={handleLogout}
+          className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-all"
+        >
+          Sair
+        </button>
       </div>
 
       <div className="bg-white rounded-md border border-gray-200 overflow-hidden">
@@ -116,3 +132,4 @@ export default function ListaCondominios() {
     </div>
   );
 }
+
