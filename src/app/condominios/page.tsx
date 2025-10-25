@@ -1,13 +1,17 @@
 "use client";
 
 import AuthenticatedLayout from "@/components/authenticated-layout";
+import SearchInput from "@/components/SearchInput";
 import { useEffect, useState } from "react";
 import { ICondominio } from "@/services/condominio.service";
+import { FaSearch } from "react-icons/fa";
 
 export default function ListaCondominios() {
   const [condominios, setCondominios] = useState<ICondominio[]>([]);
+  const [condominiosFiltrados, setCondominiosFiltrados] = useState<ICondominio[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [pesquisa, setPesquisa] = useState<string>("");
 
   useEffect(() => {
     const buscaCondominios = async () => {
@@ -20,6 +24,7 @@ export default function ListaCondominios() {
 
         if (!json.success) throw new Error(json.error);
         setCondominios(json.data);
+        setCondominiosFiltrados(json.data);
       } catch (err: any) {
         setError(err.message || "Erro ao carregar os dados");
       } finally {
@@ -30,11 +35,36 @@ export default function ListaCondominios() {
     buscaCondominios();
   }, []);
 
+  // Função para filtrar condomínios baseado na pesquisa
+  useEffect(() => {
+    if (pesquisa.trim() === "") {
+      setCondominiosFiltrados(condominios);
+    } else {
+      const filtrados = condominios.filter(condominio =>
+        condominio.nome_condominio.toLowerCase().includes(pesquisa.toLowerCase()) ||
+        condominio.cidade_condominio.toLowerCase().includes(pesquisa.toLowerCase()) ||
+        condominio.endereco_condominio.toLowerCase().includes(pesquisa.toLowerCase())||
+        condominio.uf_condominio.toLowerCase().includes(pesquisa.toLowerCase()) ||
+        condominio.tipo_condominio.toLowerCase().includes(pesquisa.toLowerCase())
+      );
+      setCondominiosFiltrados(filtrados);
+    }
+  }, [pesquisa, condominios]);
+
   return (
     <AuthenticatedLayout>
       <div className="p-6 max-w-full">
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold">Condomínios</h1>
+        {/* Cabeçalho com título e input abaixo */}
+        <div className="mb-6">
+          <h1 className="text-xl font-semibold mb-4">Condomínios</h1>
+          
+          {/* Input de Pesquisa usando o componente */}
+          <SearchInput
+            placeholder="Pesquisar"
+            icon={FaSearch}
+            value={pesquisa}
+            onChange={setPesquisa}
+          />
         </div>
 
         <div className="bg-white rounded-md border border-gray-200 overflow-hidden">
@@ -70,17 +100,17 @@ export default function ListaCondominios() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {condominios.length === 0 ? (
+                {condominiosFiltrados.length === 0 ? (
                   <tr>
                     <td
                       className="px-4 py-3 text-sm text-gray-700 text-center"
                       colSpan={7}
                     >
-                      Nenhum condomínio encontrado
+                      {pesquisa ? "Nenhum condomínio encontrado para a pesquisa" : "Nenhum condomínio encontrado"}
                     </td>
                   </tr>
                 ) : (
-                  condominios.map((condominio, index) => (
+                  condominiosFiltrados.map((condominio, index) => (
                     <tr
                       key={condominio.id_condominio}
                       className="hover:bg-gray-50"
