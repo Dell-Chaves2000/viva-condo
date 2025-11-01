@@ -23,3 +23,16 @@ export async function getCondominios() {
 
   return data ?? [];
 }
+
+export async function deleteCondominio(id: number) {
+  const supabase = await createServerSupabase();
+
+  const { error } = await supabase
+    .from("condominio")
+    .delete()
+    .eq("id_condominio", id);
+
+  if (error) throw new Error(error.message);
+
+  return { success: true };
+}
