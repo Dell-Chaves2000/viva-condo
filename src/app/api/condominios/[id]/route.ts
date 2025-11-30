@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deleteCondominio } from "@/services/condominio.service";
+import { createServerSupabase } from "@/utils/supabase/server";
 
 export async function DELETE(
   request: NextRequest,
@@ -15,12 +15,23 @@ export async function DELETE(
       );
     }
 
-     await deleteCondominio(id);
+    const supabase = await createServerSupabase();
+
+    const { error } = await supabase
+      .from("condominio")
+      .delete()
+      .eq("id_condominio", id);
+
+    if (error) {
+      console.error("Erro do Supabase:", error);
+      throw new Error(error.message);
+    }
 
     return NextResponse.json({
       success: true,
       message: "Condomínio excluído com sucesso"
     });
+
   } catch (error: any) {
     console.error("Erro ao excluir condomínio:", error);
     
@@ -32,4 +43,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}

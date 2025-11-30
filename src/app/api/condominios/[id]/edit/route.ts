@@ -1,17 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/utils/supabase/server";
-import { getCondominios } from "@/services/condominio.service";
 
-export async function POST(request: NextRequest) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
+    const id = parseInt(params.id);
+    
+    if (isNaN(id)) {
+      return NextResponse.json(
+        { success: false, error: "ID inválido" },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
-    console.log("Dados recebidos para criação:", body);
+    console.log("Dados recebidos para atualização:", body);
 
     const supabase = await createServerSupabase();
 
     const { data, error } = await supabase
       .from("condominio")
-      .insert([body])
+      .update(body)
+      .eq("id_condominio", id)
       .select()
       .single();
 
@@ -23,11 +35,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data,
-      message: "Condomínio criado com sucesso"
+      message: "Condomínio atualizado com sucesso"
     });
 
   } catch (error: any) {
-    console.error("Erro ao criar condomínio:", error);
+    console.error("Erro ao atualizar condomínio:", error);
     
     return NextResponse.json(
       { 
@@ -35,29 +47,6 @@ export async function POST(request: NextRequest) {
         error: error.message || "Erro interno do servidor" 
       },
       { status: 500 }
-    );
-  }
-}
-
-export async function GET() {
-  try {
-    const data = await getCondominios();
-
-    return NextResponse.json(
-      {
-        success: true,
-        count: data.length,
-        data,
-      },
-      { status: 200 }
-    );
-  } catch (e: any) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: e.message ?? "Erro inesperado",
-      },
-      { status: 400 }
     );
   }
 }

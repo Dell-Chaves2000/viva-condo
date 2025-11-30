@@ -7,6 +7,7 @@ import { ICondominio } from "@/services/condominio.service";
 import { FaSearch } from "react-icons/fa";
 import Dropdown from "@/components/dropdown";
 import ConfirmDialog from "@/components/confirm-dialog";
+import CondominioForm from "@/components/condominio-form";
 import { toast } from "sonner";
 
 export default function ListaCondominios() {
@@ -16,32 +17,37 @@ export default function ListaCondominios() {
   const [error, setError] = useState<string | null>(null);
   const [pesquisa, setPesquisa] = useState<string>("");
   
-  // Estados para o modal de confirmação
+  // Estados para o modal de confirmação de exclusão
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [condominioToDelete, setCondominioToDelete] = useState<ICondominio | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Estados para o formulário de incluir/editar
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [condominioToEdit, setCondominioToEdit] = useState<ICondominio | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
   useEffect(() => {
-    const buscaCondominios = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await fetch("/api/condominios");
-        const json = await response.json();
-
-        if (!json.success) throw new Error(json.error);
-        setCondominios(json.data);
-        setCondominiosFiltrados(json.data);
-      } catch (err: any) {
-        setError(err.message || "Erro ao carregar os dados");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     buscaCondominios();
   }, []);
+
+  const buscaCondominios = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/condominios");
+      const json = await response.json();
+
+      if (!json.success) throw new Error(json.error);
+      setCondominios(json.data);
+      setCondominiosFiltrados(json.data);
+    } catch (err: any) {
+      setError(err.message || "Erro ao carregar os dados");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Função para filtrar condomínios baseado na pesquisa
   useEffect(() => {
@@ -59,19 +65,97 @@ export default function ListaCondominios() {
     }
   }, [pesquisa, condominios]);
 
-  // Função para abrir o modal de confirmação
+  // Funções para o formulário de incluir/editar
+  const handleOpenForm = (condominio?: ICondominio) => {
+    setCondominioToEdit(condominio || null);
+    setIsFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setCondominioToEdit(null);
+  };
+
+  const handleSaveCondominio = async (formData: any) => {
+  try {
+    setIsSaving(true);
+
+    // URLs corrigidas
+    const url = condominioToEdit 
+      ? `/api/condominios/${condominioToEdit.id_condominio}/edit`  // Nova URL para PUT
+      : '/api/condominios';  // POST permanece o mesmo
+    
+    const method = condominioToEdit ? 'PUT' : 'POST';
+
+    console.log("Enviando dados para:", url, "Método:", method);
+    console.log("Dados:", formData);
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+
+    // Verifica se a resposta é válida
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Resposta de erro:", errorText);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log("Resposta do servidor:", result);
+
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    // Atualiza a lista
+    await buscaCondominios();
+    
+    // Fecha o formulário
+    handleCloseForm();
+    
+    // Mensagem de sucesso
+    toast.success(
+      condominioToEdit 
+        ? "Condomínio atualizado com sucesso." 
+        : "Condomínio cadastrado com sucesso."
+    );
+    
+  } catch (error: any) {
+    console.error("Erro ao salvar condomínio:", error);
+    
+    // Mensagem de erro mais específica
+    let errorMessage = "Não foi possível salvar o condomínio. Tente novamente.";
+    
+    if (error.message.includes('HTTP error')) {
+      errorMessage = "Erro de conexão com o servidor. Verifique sua internet.";
+    } else if (error.message.includes('Unexpected token')) {
+      errorMessage = "Erro no formato da resposta do servidor.";
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    toast.error(errorMessage);
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+  // Funções para exclusão
   const handleOpenDeleteDialog = (condominio: ICondominio) => {
     setCondominioToDelete(condominio);
     setIsDialogOpen(true);
   };
 
-  // Função para fechar o modal
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setCondominioToDelete(null);
   };
 
-  // Função para excluir o condomínio
   const handleDeleteCondominio = async () => {
     if (!condominioToDelete) return;
 
@@ -88,76 +172,39 @@ export default function ListaCondominios() {
         throw new Error(result.error);
       }
 
-      // Remove o item da lista sem recarregar a página
       setCondominios(prev => 
         prev.filter(c => c.id_condominio !== condominioToDelete.id_condominio)
       );
       
-      // Fecha o modal
       handleCloseDialog();
-      
-      // Exibe mensagem de sucesso
-     // 1º - Toast de sucesso na cor verde - rodapé direito
-      toast.success("Condomínio excluído com sucesso.", {
-        style: {
-          background: '#f0fdf4',
-          border: '1px solid #bbf7d0',
-          color: '#166534',
-        },
-        icon: (
-          <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
-            </svg>
-          </div>
-        ),
-      });
+      toast.success("Condomínio excluído com sucesso.");
       
     } catch (error: any) {
       console.error("Erro ao excluir condomínio:", error);
-      
-      // 3º - Toast de erro na cor vermelha
-      toast.error("Não foi possível excluir o condomínio. Tente novamente.", {
-        style: {
-          background: '#fef2f2',
-          border: '1px solid #fecaca',
-          color: '#dc2626',
-        },
-        icon: (
-          <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </div>
-        ),
-      });
+      toast.error("Não foi possível excluir o condomínio. Tente novamente.");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Função para editar (placeholder)
-  const handleEdit = (condominio: ICondominio) => {
-    
-    console.log("Editar condomínio:", condominio);
-    toast.info("Funcionalidade de edição em desenvolvimento", {
-      style: {
-        background: '#eff6ff',
-        border: '1px solid #bfdbfe',
-        color: '#1e40af',
-      },
-    });
-  };
-
   return (
     <AuthenticatedLayout>
       <div className="p-6 max-w-full">
-        
-        {/* Cabeçalho com título e input abaixo */}
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold mb-4">Condomínios</h1>
+        {/* Cabeçalho com título e dropdown de ações */}
+        <div className="mb-6 flex justify-between items-center">
+          <h1 className="text-xl font-semibold">Condomínios</h1>
           
-          {/* Input de Pesquisa usando o componente */}
+          {/* Dropdown para ações gerais (incluir) */}
+          <Dropdown
+            onAdd={() => handleOpenForm()}
+            onEdit={() => toast.info("Selecione um condomínio para editar")}
+            onDelete={() => toast.info("Selecione um condomínio para excluir")}
+            showAddOption={true}
+          />
+        </div>
+
+        {/* Input de Pesquisa */}
+        <div className="mb-6">
           <SearchInput
             placeholder="Pesquisar"
             icon={FaSearch}
@@ -234,7 +281,7 @@ export default function ListaCondominios() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                         <Dropdown
-                          onEdit={() => handleEdit(condominio)}
+                          onEdit={() => handleOpenForm(condominio)}
                           onDelete={() => handleOpenDeleteDialog(condominio)}
                         />
                       </td>
@@ -246,7 +293,7 @@ export default function ListaCondominios() {
           )}
         </div>
 
-        {/* Modal de Confirmação de Exclusão - Estilo específico para condomínios */}
+        {/* Modal de Confirmação de Exclusão */}
         <ConfirmDialog
           isOpen={isDialogOpen}
           onClose={handleCloseDialog}
@@ -257,6 +304,15 @@ export default function ListaCondominios() {
           confirmText="Excluir"
           loading={isDeleting}
           variant="destructive"
+        />
+
+        {/* Formulário de Incluir/Editar Condomínio */}
+        <CondominioForm
+          isOpen={isFormOpen}
+          onClose={handleCloseForm}
+          onSave={handleSaveCondominio}
+          condominio={condominioToEdit}
+          loading={isSaving}
         />
       </div>
     </AuthenticatedLayout>
